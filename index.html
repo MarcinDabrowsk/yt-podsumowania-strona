@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Podsumowania YouTube</title>
+<style>
+:root {
+  --bg: #f6f5f1; --surface: #ffffff; --text: #1d1c1a; --muted: #6b6861;
+  --line: #e2dfd7; --accent: #b4451f; --accent-soft: #f6e4dc; --chip: #ecebe5;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171614; --surface: #211f1c; --text: #ece9e2; --muted: #a09b90;
+    --line: #35322d; --accent: #f08a5d; --accent-soft: #3a261d; --chip: #2c2a26;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--accent); }
+[hidden] { display: none !important; }
+
+/* Ekran hasła */
+#login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+#login form {
+  width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 28px 24px;
+}
+#login h1 { font-size: 20px; margin: 0 0 4px; }
+#login p { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+#login input[type=password] {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); margin-bottom: 12px;
+}
+#login label.remember { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+.primary {
+  width: 100%; padding: 10px 14px; border: 0; border-radius: 8px; background: var(--accent);
+  color: #fff; font-weight: 600; cursor: pointer;
+}
+.primary:disabled { opacity: .6; cursor: default; }
+#login .error { color: var(--accent); font-size: 14px; min-height: 22px; margin: 10px 0 0; }
+
+/* Aplikacja */
+header.bar {
+  position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.bar-inner { max-width: 920px; margin: 0 auto; padding: 12px 16px; display: flex; gap: 12px; align-items: center; }
+.brand { font-weight: 700; font-size: 17px; white-space: nowrap; cursor: pointer; background: none; border: 0; padding: 0; }
+#search {
+  flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+}
+.ghost { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+main { max-width: 920px; margin: 0 auto; padding: 16px 16px 64px; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+.chip {
+  border: 1px solid transparent; background: var(--chip); border-radius: 999px; padding: 5px 12px;
+  font-size: 14px; cursor: pointer;
+}
+.chip[aria-pressed=true] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.chip small { color: var(--muted); font-weight: 400; }
+.filters select { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 14px; max-width: 100%; }
+.count { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+
+.card {
+  display: block; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px 18px; margin-bottom: 10px; cursor: pointer;
+}
+.card:hover { border-color: var(--accent); }
+.tag { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.card h2 { font-size: 18px; line-height: 1.35; margin: 4px 0 4px; }
+.meta { font-size: 13px; color: var(--muted); }
+.card p { margin: 8px 0 0; font-size: 15px; color: var(--text); opacity: .9; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+
+/* Widok podsumowania */
+article { max-width: 720px; margin: 0 auto; }
+.back { margin-bottom: 16px; }
+article h1 { font-size: 26px; line-height: 1.25; margin: 6px 0 8px; }
+article .meta { margin-bottom: 20px; }
+.md h2 { font-size: 19px; margin: 28px 0 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.md h3 { font-size: 16px; margin: 20px 0 6px; }
+.md p { margin: 0 0 12px; }
+.md ul, .md ol { margin: 0 0 12px; padding-left: 22px; }
+.md li { margin-bottom: 5px; }
+.md li.sub { margin-left: 20px; list-style-type: circle; }
+.md code { background: var(--chip); border-radius: 4px; padding: 1px 5px; font-size: .9em; }
+.md hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
+.transcript { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line); }
+.transcript .text { margin-top: 16px; font-size: 15px; color: var(--muted); }
+.transcript .text p { margin: 0 0 12px; }
+
+@media (max-width: 560px) {
+  .bar-inner { flex-wrap: wrap; }
+  #search { order: 3; flex-basis: 100%; }
+  .brand { flex: 1; text-align: left; }
+  article h1 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+<div id="login" hidden>
+  <form id="login-form" autocomplete="off">
+    <h1>Podsumowania YouTube</h1>
+    <p>Treść jest zaszyfrowana. Podaj hasło, żeby ją odczytać.</p>
+    <input type="password" id="password" placeholder="Hasło" aria-label="Hasło" required autofocus>
+    <label class="remember"><input type="checkbox" id="remember" checked> Zapamiętaj na tym urządzeniu</label>
+    <button class="primary" id="login-button">Otwórz</button>
+    <div class="error" id="login-error" role="alert"></div>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header class="bar">
+    <div class="bar-inner">
+      <button class="brand" id="home">Podsumowania</button>
+      <input type="search" id="search" placeholder="Szukaj w tytułach i podsumowaniach" aria-label="Szukaj">
+      <button class="ghost" id="logout">Wyloguj</button>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<script>
+(() => {
+  const SALT = "vZgKI02JmUuhQRT1Y3t8Hg==", ITERATIONS = 600000, KEY_STORE = "ytp-key";
+  const $ = (id) => document.getElementById(id);
+  const state = { key: null, videos: [], category: "", channel: "", type: "", query: "" };
+
+  /* ---------- szyfrowanie ---------- */
+  const fromB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const toB64 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+
+  async function deriveRawKey(password) {
+    const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+    return crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: fromB64(SALT), iterations: ITERATIONS }, material, 256);
+  }
+  const importKey = (raw) => crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+
+  async function decryptFile(path, key) {
+    const response = await fetch(path, { cache: "no-store" });
+    if (!response.ok) throw new Error("Nie udało się pobrać danych (" + response.status + ").");
+    const data = new Uint8Array(await response.arrayBuffer());
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: data.slice(0, 12) }, key, data.slice(12));
+    const stream = new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Response(stream).text();
+  }
+
+  /* ---------- logowanie ---------- */
+  async function open(rawKey) {
+    const key = await importKey(rawKey);
+    let text;
+    try { text = await decryptFile("data/index.bin", key); }
+    catch (err) { if (err.name === "OperationError") throw new Error("WRONG"); throw err; }
+    state.key = key;
+    state.videos = JSON.parse(text).videos;
+    $("login").hidden = true;
+    $("app").hidden = false;
+    route();
+  }
+
+  function remembered() { try { return localStorage.getItem(KEY_STORE); } catch { return null; } }
+  function remember(raw) { try { localStorage.setItem(KEY_STORE, toB64(raw)); } catch {} }
+  function forget() { try { localStorage.removeItem(KEY_STORE); } catch {} }
+
+  $("login-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = $("login-button"), error = $("login-error");
+    button.disabled = true; button.textContent = "Odszyfrowuję…"; error.textContent = "";
+    try {
+      const raw = await deriveRawKey($("password").value.trim());
+      await open(raw);
+      if ($("remember").checked) remember(raw);
+      $("password").value = "";
+    } catch (err) {
+      error.textContent = err.message === "WRONG" ? "Błędne hasło." : err.message;
+    }
+    button.disabled = false; button.textContent = "Otwórz";
+  });
+
+  $("logout").addEventListener("click", () => { forget(); location.hash = ""; location.reload(); });
+  $("home").addEventListener("click", () => { location.hash = ""; });
+  $("search").addEventListener("input", (event) => {
+    state.query = event.target.value;
+    if (location.hash.startsWith("#v=")) location.hash = ""; else renderList();
+  });
+
+  /* ---------- pomocnicze ---------- */
+  const el = (tag, attrs = {}, ...children) => {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") node.className = v; else if (k === "text") node.textContent = v;
+      else if (k.startsWith("on")) node.addEventListener(k.slice(2), v); else node.setAttribute(k, v);
+    }
+    node.append(...children.filter(Boolean));
+    return node;
+  };
+  const fold = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
+  const date = (iso) => iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "";
+  const metaLine = (v) => [v.channel, date(v.published), v.type === "short" ? "short" : "film"].filter(Boolean).join(" · ");
+
+  function snippet(v) {
+    const match = /## W skrócie\s*\n([\s\S]*?)(?=\n## |$)/.exec(v.summary);
+    const text = (match ? match[1] : v.summary).replace(/[*_`#]/g, "").replace(/\s+/g, " ").trim();
+    return text.length > 230 ? text.slice(0, 230).replace(/\s\S*$/, "").replace(/[.,;:!?]+$/, "") + "…" : text;
+  }
+
+  /* ---------- Markdown (treść jest najpierw escapowana) ---------- */
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  function inline(s) {
+    return esc(s)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[\s(])\*([^*\s][^*]*)\*(?=[\s).,;:!?]|$)/g, "$1<em>$2</em>");
+  }
+  function markdown(source) {
+    const out = []; let para = [], list = null;
+    const flushPara = () => { if (para.length) { out.push("<p>" + inline(para.join(" ")) + "</p>"); para = []; } };
+    const flushList = () => { if (list) { out.push("</" + list + ">"); list = null; } };
+    for (const raw of source.split("\n")) {
+      const line = raw.replace(/\s+$/, "");
+      let m;
+      if (!line.trim()) { flushPara(); flushList(); }
+      else if ((m = /^(#{1,4})\s+(.*)$/.exec(line))) {
+        flushPara(); flushList();
+        const level = Math.min(Math.max(m[1].length, 2), 3);
+        out.push("<h" + level + ">" + inline(m[2]) + "</h" + level + ">");
+      }
+      else if (/^(-{3,}|\*{3,})$/.test(line.trim())) { flushPara(); flushList(); out.push("<hr>"); }
+      else if ((m = /^(\s*)([-*]|\d+[.)])\s+(.*)$/.exec(line))) {
+        flushPara();
+        const kind = /\d/.test(m[2]) ? "ol" : "ul", sub = m[1].length >= 2;
+        if (!list) { list = kind; out.push("<" + kind + ">"); }
+        else if (list !== kind && !sub) { flushList(); list = kind; out.push("<" + kind + ">"); }
+        out.push("<li" + (sub ? ' class="sub"' : "") + ">" + inline(m[3]) + "</li>");
+      }
+      else { flushList(); para.push(line.trim()); }
+    }
+    flushPara(); flushList();
+    return out.join("\n");
+  }
+
+  /* ---------- lista ---------- */
+  function counts(field) {
+    const map = new Map();
+    for (const v of state.videos) map.set(v[field], (map.get(v[field]) || 0) + 1);
+    return [...map.entries()].filter(([k]) => k).sort((a, b) => a[0].localeCompare(b[0], "pl"));
+  }
+
+  function filtered() {
+    const words = fold(state.query).split(/\s+/).filter(Boolean);
+    return state.videos.filter((v) => {
+      if (state.category && v.category !== state.category) return false;
+      if (state.channel && v.channel !== state.channel) return false;
+      if (state.type && v.type !== state.type) return false;
+      if (!words.length) return true;
+      const hay = fold(v.title + " " + v.channel + " " + v.category + " " + v.summary);
+      return words.every((w) => hay.includes(w));
+    });
+  }
+
+  function renderList() {
+    const main = $("main");
+    main.replaceChildren();
+    const chip = (label, value, n) => el("button", {
+      class: "chip", "aria-pressed": String(state.category === value),
+      onclick: () => { state.category = value; state.channel = ""; renderList(); },
+    }, label + " ", el("small", { text: String(n) }));
+    const filters = el("div", { class: "filters" }, chip("Wszystkie", "", state.videos.length),
+      ...counts("category").map(([name, n]) => chip(name, name, n)));
+
+    const select = (field, placeholder, options) => {
+      const node = el("select", { "aria-label": placeholder, onchange: (e) => { state[field] = e.target.value; renderList(); } },
+        el("option", { value: "", text: placeholder }),
+        ...options.map(([value, label]) => el("option", { value, text: label })));
+      node.value = state[field];
+      return node;
+    };
+    const channels = counts("channel").filter(([name]) =>
+      !state.category || state.videos.some((v) => v.channel === name && v.category === state.category));
+    filters.append(
+      select("channel", "Wszystkie kanały", channels.map(([name]) => [name, name])),
+      select("type", "Filmy i shortsy", [["film", "Tylko filmy"], ["short", "Tylko shortsy"]]));
+    main.append(filters);
+
+    const items = filtered();
+    main.append(el("p", { class: "count", text: items.length + " z " + state.videos.length + " podsumowań" }));
+    if (!items.length) {
+      main.append(el("p", { class: "empty", text: state.videos.length ? "Nic nie pasuje do wybranych filtrów." : "Nie ma jeszcze żadnych podsumowań." }));
+      return;
+    }
+    for (const v of items) {
+      main.append(el("button", { class: "card", onclick: () => { location.hash = "v=" + v.id; } },
+        el("div", { class: "tag", text: v.category }),
+        el("h2", { text: v.title }),
+        el("div", { class: "meta", text: metaLine(v) }),
+        el("p", { text: snippet(v) })));
+    }
+  }
+
+  /* ---------- widok podsumowania ---------- */
+  function renderVideo(v) {
+    const main = $("main");
+    const body = el("div", { class: "md" });
+    body.innerHTML = markdown(v.summary);
+    const article = el("article", {},
+      el("button", { class: "ghost back", text: "← Wszystkie podsumowania", onclick: () => { location.hash = ""; } }),
+      el("div", { class: "tag", text: v.category }),
+      el("h1", { text: v.title }),
+      el("div", { class: "meta" }, metaLine(v) + " · ", el("a", { href: v.url, target: "_blank", rel: "noopener noreferrer", text: "Obejrzyj na YouTube" })),
+      body);
+
+    if (v.transcript) {
+      const text = el("div", { class: "text" });
+      const button = el("button", { class: "ghost", text: "Pokaż transkrypcję" + (v.words ? " (" + v.words + " słów)" : "") });
+      button.addEventListener("click", async () => {
+        if (text.childElementCount) { text.hidden = !text.hidden; return; }
+        button.disabled = true;
+        try {
+          const raw = await decryptFile("data/t/" + v.transcript + ".bin", state.key);
+          for (const para of raw.split(/\n{2,}/)) text.append(el("p", { text: para }));
+        } catch (err) { text.append(el("p", { text: "Nie udało się wczytać transkrypcji." })); }
+        button.disabled = false;
+      });
+      article.append(el("div", { class: "transcript" }, button, text));
+    }
+    main.replaceChildren(article);
+    window.scrollTo(0, 0);
+  }
+
+  function route() {
+    const match = /^#v=(.+)$/.exec(location.hash);
+    const video = match && state.videos.find((v) => v.id === decodeURIComponent(match[1]));
+    if (video) renderVideo(video); else renderList();
+  }
+  window.addEventListener("hashchange", () => { if (state.key) route(); });
+
+  /* ---------- start ---------- */
+  (async () => {
+    const stored = remembered();
+    if (stored) {
+      try { await open(fromB64(stored)); return; } catch { forget(); }
+    }
+    $("login").hidden = false;
+    $("password").focus();
+  })();
+})();
+</script>
+</body>
+</html>
